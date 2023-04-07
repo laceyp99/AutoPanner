@@ -9,8 +9,8 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "AutoPan.h"
-
+// #include "AutoPan.h"
+#include "PatsPanner.h"
 //==============================================================================
 /**
 */
@@ -59,14 +59,20 @@ public:
 
     juce::AudioProcessorValueTreeState treestate;
 
+    void updateParameters();
 
 private:
 
-    AutoPan autoPan;
+    juce::dsp::Oscillator<float> lfo;
+    juce::AudioBuffer<float> lfoBuffer;
+
+    PatsPanner panner;
+    //juce::dsp::Panner<float> panner;
 
     float rate = 0.1f;
     float depth = 0.1f;
     float pan = 0.0f;
+    float panValue = 0.0f;
 
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
     void parameterChanged(const juce::String& parameterID, float newValue) override;
