@@ -19,12 +19,13 @@ AutoPannerAudioProcessor::AutoPannerAudioProcessor()
                       #endif
                        .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
                      #endif
-                       ), treestate(*this, nullptr, "Parameters", createParameterLayout()), lfo(), panner()// autoPan()
+                       ), treestate(*this, nullptr, "Parameters", createParameterLayout()), autoPan()
 #endif
 {
     treestate.addParameterListener("rate", this);
     treestate.addParameterListener("depth", this);
     treestate.addParameterListener("pan", this);
+    treestate.addParameterListener("lfo on", this);
 }
 
 AutoPannerAudioProcessor::~AutoPannerAudioProcessor()
@@ -32,6 +33,7 @@ AutoPannerAudioProcessor::~AutoPannerAudioProcessor()
     treestate.removeParameterListener("rate", this);
     treestate.removeParameterListener("depth", this);
     treestate.removeParameterListener("pan", this);
+    treestate.removeParameterListener("lfo on", this);
 }
 
 juce::AudioProcessorValueTreeState::ParameterLayout AutoPannerAudioProcessor::createParameterLayout()
@@ -41,6 +43,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout AutoPannerAudioProcessor::cr
     params.push_back(std::make_unique<juce::AudioParameterFloat>("rate", "Rate", 0.1f, 10.0f, 1.0f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>("depth", "Depth", 0.0f, 1.0f, 0.0f));
     params.push_back(std::make_unique<juce::AudioParameterFloat>("pan", "Pan", -1.0f, 1.0f, 0.0f));
+    params.push_back(std::make_unique<juce::AudioParameterBool>("lfo on", "LFO", 0));
     return { params.begin(), params.end() };
 
      
@@ -50,18 +53,20 @@ void AutoPannerAudioProcessor::parameterChanged(const juce::String& parameterID,
 {
     if (parameterID == "rate")
     {
-        rate = newValue;
+        autoPan.setRate(newValue);
     }
     if (parameterID == "depth")
 	{
-        depth = newValue;
-		
+        autoPan.setDepth(newValue);
 	}
     if (parameterID == "pan")
 	{
-        pan = newValue;
-		
+        autoPan.setPan(newValue);
 	}
+    if (parameterID == "lfo on")
+    {
+        autoPan.setLFO((bool)newValue);
+    }
 }
 
 //==============================================================================
@@ -136,24 +141,10 @@ void AutoPannerAudioProcessor::prepareToPlay (double sampleRate, int samplesPerB
     spec.sampleRate = sampleRate;
     spec.maximumBlockSize = samplesPerBlock;
     spec.numChannels = getTotalNumOutputChannels();
-
-    //panner.reset();
-    //panner.prepare(spec);
-    //panner.setRule(juce::dsp::Panner<float>::Rule::linear);
     
-    lfo.reset();
-    lfo.initialise([](float x) { return juce::dsp::FastMathApproximations::sin(x); });
-    lfo.prepare({ spec.sampleRate, spec.maximumBlockSize, 1 });
+    autoPan.prepareToPlay(spec);
     
-    lfoBuffer.clear();
-    lfoBuffer.setSize(1, spec.maximumBlockSize);
-    
-
     updateParameters();
-
-    // autoPan.setRate(rate);
-    // autoPan.setDepth(depth);
-    // autoPan.setPan(pan);
 }
 
 void AutoPannerAudioProcessor::releaseResources()
@@ -193,12 +184,12 @@ void AutoPannerAudioProcessor::updateParameters()
     rate = *treestate.getRawParameterValue("rate");
     depth = *treestate.getRawParameterValue("depth");
     pan = *treestate.getRawParameterValue("pan");
-
+    lfoOn = *treestate.getRawParameterValue("lfo on");
     
-    lfo.setFrequency(rate);
-    
-    panner.setPan(panValue);
-    //panner.setPan(pan);
+    autoPan.setRate(rate);
+    autoPan.setDepth(depth);
+    autoPan.setPan(pan);
+    autoPan.setLFO(lfoOn);
 
 }
 
@@ -211,39 +202,9 @@ void AutoPannerAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
 
-    // autoPan.processBlock(buffer);
     updateParameters();
-
-    juce::dsp::AudioBlock<float> block(buffer);
-    auto context = juce::dsp::ProcessContextReplacing<float>(block);
-    juce::dsp::AudioBlock<float> lfoBlock(lfoBuffer);
-    
-    lfo.process(juce::dsp::ProcessContextReplacing<float>(lfoBlock));
-    /*
-    for (int sample = 0; sample < lfoBlock.getNumSamples(); ++sample)
-    {
-        DBG(sample << " = " << lfoBlock.getSample(0, sample));
-    }
-    */
-    
-    for (int channel = 0; channel < totalNumInputChannels; ++channel)
-    {
-		auto* channelData = buffer.getWritePointer(channel);
-        for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
-        {
-            //DBG("lfoBlock sample: " << lfoBlock.getSample(0, sample));
-			float lfoValue = lfoBuffer.getSample(0, sample); 
-            panValue = lfoValue * depth;
-            panner.setPan(panValue);
-            //DBG("panValue: " << panValue);
-            channelData[sample] = panner.processSample(channel, channelData[sample]);
-		}
-	}
-    //panner.process(context);
-    lfoBuffer.clear();
-    
-    //panner.process(context);
-    //lfo.process(context);
+    autoPan.processBlock(buffer);
+  
 }
 
 //==============================================================================
@@ -276,12 +237,10 @@ void AutoPannerAudioProcessor::setStateInformation (const void* data, int sizeIn
     if (tree.isValid())
 	{
 		treestate.state = tree;
-        pan = *treestate.getRawParameterValue("pan");
-        depth = *treestate.getRawParameterValue("depth");
-        rate = *treestate.getRawParameterValue("rate");
-        // autoPan.setRate(*treestate.getRawParameterValue("rate"));
-        // autoPan.setDepth(*treestate.getRawParameterValue("depth"));
-        // autoPan.setPan(*treestate.getRawParameterValue("pan"));
+        autoPan.setPan(*treestate.getRawParameterValue("pan"));
+        autoPan.setDepth(*treestate.getRawParameterValue("depth"));
+        autoPan.setRate(*treestate.getRawParameterValue("rate"));
+        autoPan.setLFO(*treestate.getRawParameterValue("lfo on"));
 	}
 }
 

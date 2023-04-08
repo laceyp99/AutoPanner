@@ -9,8 +9,7 @@
 #pragma once
 
 #include <JuceHeader.h>
-// #include "AutoPan.h"
-#include "PatsPanner.h"
+#include "AutoPan.h"
 //==============================================================================
 /**
 */
@@ -63,12 +62,10 @@ public:
 
 private:
 
-    juce::dsp::Oscillator<float> lfo;
-    juce::AudioBuffer<float> lfoBuffer;
+    
+    AutoPan autoPan;
 
-    PatsPanner panner;
-    //juce::dsp::Panner<float> panner;
-
+    bool lfoOn = 0;
     float rate = 0.1f;
     float depth = 0.1f;
     float pan = 0.0f;
