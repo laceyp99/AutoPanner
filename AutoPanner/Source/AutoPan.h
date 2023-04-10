@@ -16,8 +16,10 @@ public:
 		panner.reset();
 
 		lfo.prepare({ spec.sampleRate, (uint32)spec.maximumBlockSize, 1 });
-		lfo.initialise([](float x) {return std::sin(x); }, spec.sampleRate);
-		lfo.setFrequency(rate);
+		// lfo.initialise([](float x) {return std::sin(x); }, spec.sampleRate);
+		initializeLFO(lfoTypeIndex, spec.sampleRate);
+		// lfo.setFrequency(rate);
+		//tempoSync()
 		lfoBuffer.setSize(1, spec.maximumBlockSize);
 
 		panner.prepare(spec);
@@ -53,10 +55,47 @@ public:
 		panner.process(context);
 		lfoBlock.clear();
 	}
+
+	void initializeLFO(float lfoTypeIndex, float samplerate)
+	{
+		if (lfoTypeIndex == 1)
+		{
+			// create a square wave lfo
+			lfo.initialise([](float x) {return (juce::dsp::FastMathApproximations::sin(x)) >= 0 ? 1 : -1; }, samplerate);
+		}
+		if (lfoTypeIndex == 2)
+		{
+			// create a sawtooth wave lfo
+			lfo.initialise([](float x)
+				{
+					return juce::jmap(x,
+					float(-juce::MathConstants<double>::pi), float(juce::MathConstants<double>::pi),
+					float(-1), float(1));
+				}, samplerate);
+		}
+		else if (lfoTypeIndex == 0) // sine wave
+		{
+			lfo.initialise([](float x) {return juce::dsp::FastMathApproximations::sin(x); }, samplerate);
+		}
+	}
+
+	void tempoSync(bool tempoSyncOn)
+	{
+		if (tempoSyncOn)
+		{
+			BPM = (float)lastPosInfo.bpm;
+			bpmRate = BPM / 60.0f;
+			lfo.setFrequency(bpmRate);
+		}
+		else
+		{
+			lfo.setFrequency(rate);
+		}
+	}
+
 	void setRate(float newRate)
 	{
 		rate = newRate;
-		lfo.setFrequency(rate);
 	}
 
 	void setDepth(float newDepth)
@@ -79,10 +118,14 @@ private:
 	dsp::Oscillator<float> lfo;
 	AudioBuffer<float> lfoBuffer;
 	dsp::Panner<float> panner;
+	AudioPlayHead::CurrentPositionInfo lastPosInfo;
 
+	float BPM = 120.0f;
+	float bpmRate = 0.0f;
 	float rate = 0.1f;
 	float depth = 0.1f;
 	float pan = 0.0f;
 	float panValue = 0.0f;
 	bool lfoOn = 0;
+	float lfoTypeIndex = 0.0f;
 };

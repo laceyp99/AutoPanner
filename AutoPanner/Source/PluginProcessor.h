@@ -62,14 +62,16 @@ public:
 
 private:
 
-    
+    //AudioPlayHead::CurrentPositionInfo playHeadInfo;
     AutoPan autoPan;
 
+    float lfoType = 0.0f;
     bool lfoOn = 0;
     float rate = 0.1f;
     float depth = 0.1f;
     float pan = 0.0f;
     float panValue = 0.0f;
+    bool bpmSyncOn = 0;
 
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
     void parameterChanged(const juce::String& parameterID, float newValue) override;
