@@ -50,7 +50,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout AutoPannerAudioProcessor::cr
     params.push_back(std::make_unique<juce::AudioParameterFloat>("pan", "Pan", -1.0f, 1.0f, 0.0f));
     params.push_back(std::make_unique<juce::AudioParameterBool>("lfo on", "LFO", 0));
     params.push_back(std::make_unique<juce::AudioParameterChoice>("lfo type", "LFO Type", lfoTypes, 0.0f));
-    params.push_back(std::make_unique<juce::AudioParameterFloat>("depth", "Depth", 0.0f, 100.0f, 0.0f));
+    params.push_back(std::make_unique<juce::AudioParameterFloat>("depth", "Depth", 0.0f, 100.0f, 100.0f));
     params.push_back(std::make_unique<juce::AudioParameterBool>("tempo sync", "Tempo Sync", 0));
     params.push_back(std::make_unique<juce::AudioParameterFloat>("rate", "Rate", 0.1f, 10.0f, 1.0f));
     
@@ -60,29 +60,22 @@ juce::AudioProcessorValueTreeState::ParameterLayout AutoPannerAudioProcessor::cr
 void AutoPannerAudioProcessor::parameterChanged(const juce::String& parameterID, float newValue)
 {
     if (parameterID == "rate")
-    {
         autoPan.setRate(newValue);
-    }
+
     if (parameterID == "depth")
-	{
         autoPan.setDepth(newValue * 0.01f);
-	}
+
     if (parameterID == "pan")
-	{
         autoPan.setPan(newValue);
-	}
+
     if (parameterID == "lfo on")
-    {
         autoPan.setLFO((bool)newValue);
-    }
+
     if (parameterID == "lfo type")
-	{
 		autoPan.initializeLFO(newValue, getSampleRate());
-	}
+
     if (parameterID == "tempo sync")
-    {
         autoPan.tempoSync((bool)newValue);
-    }
 }
 
 //==============================================================================
@@ -211,11 +204,7 @@ void AutoPannerAudioProcessor::updateParameters()
     autoPan.setDepth(depth);
     autoPan.setPan(pan);
     autoPan.setLFO(lfoOn);
-    autoPan.tempoSync(bpmSyncOn);
-    //autoPan.initializeLFO(lfoType, getSampleRate());
-
-    //bpm = playHeadInfo.bpm;
- 
+    autoPan.tempoSync(bpmSyncOn); 
 }
 
 void AutoPannerAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)

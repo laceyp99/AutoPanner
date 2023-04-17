@@ -62,7 +62,6 @@ public:
 
 private:
 
-    //AudioPlayHead::CurrentPositionInfo playHeadInfo;
     AutoPan autoPan;
 
     float lfoType = 0.0f;

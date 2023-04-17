@@ -48,7 +48,7 @@ private:
     CustomRotarySlider depthSlider, rateSlider;
     CustomLinearSlider panSlider;
     juce::ComboBox lfoTypeBox;
-    juce::ToggleButton lfoButton, synceButton;
+    juce::ToggleButton lfoButton, syncButton;
 
     juce::Label depthLabel, rateLabel, panLabel, lfoTypeLabel, lfoOnLabel, syncLabel;
 

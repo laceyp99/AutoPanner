@@ -16,10 +16,7 @@ public:
 		panner.reset();
 
 		lfo.prepare({ spec.sampleRate, (uint32)spec.maximumBlockSize, 1 });
-		// lfo.initialise([](float x) {return std::sin(x); }, spec.sampleRate);
 		initializeLFO(lfoTypeIndex, spec.sampleRate);
-		// lfo.setFrequency(rate);
-		//tempoSync()
 		lfoBuffer.setSize(1, spec.maximumBlockSize);
 
 		panner.prepare(spec);
@@ -42,13 +39,11 @@ public:
 			{
 				float lfoValue = lfoBuffer.getSample(0, sample);
 				if (lfoOn)
-				{
 					panValue = lfoValue * depth;
-				}
+
 				else
-				{
 					panValue = pan;
-				}
+
 				panner.setPan(panValue);
 			}
 		}
@@ -88,9 +83,7 @@ public:
 			lfo.setFrequency(bpmRate);
 		}
 		else
-		{
 			lfo.setFrequency(rate);
-		}
 	}
 
 	void setRate(float newRate)
